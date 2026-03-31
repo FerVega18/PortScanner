@@ -1,3 +1,4 @@
+
 # PortScanner Pro - Security Automation Tool
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
@@ -57,6 +58,17 @@ Unlike simple port scanners, this tool:
 ---
 
 ## Architecture
+
+This project follows clean architecture principles with clear separation of concerns:
+
+
+PortScanner/
+├── main.py           # Entry point and orchestrator
+├── scanner.py        # Network scanning engine (socket logic)
+├── reporter.py       # Report generation and alerts (JSON output)
+├── config.json       # External configuration (dangerous ports)
+└── README.md         # Documentation
+
 
 ### Module Responsibilities
 
@@ -349,8 +361,8 @@ Unauthorized port scanning may violate:
 
 - Cybersecurity Professional
 - Python Automation Specialist
-- [GitHub Profile](https://github.com/FerVega18)
-- [LinkedIn Profile](https://www.linkedin.com/in/mar%C3%ADa-fernanda-quesada-vega-44652b302/)
+- [GitHub Profile](https://github.com/yourusername)
+- [LinkedIn Profile](https://linkedin.com/in/yourprofile)
 
 ### Why This Project?
 
@@ -369,5 +381,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Made with Python and Security in mind**
-
+```
 
