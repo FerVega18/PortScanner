@@ -320,8 +320,3 @@ MIT License - see `LICENSE`
 
 **Made with Python and Security in mind**
 
-```
-
-Si quieres, puedo ayudarte a dejarlo aún más “pro nivel GitHub” (con badges reales, screenshots, demo GIF, etc.).
-```
-
