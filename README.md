@@ -1,6 +1,3 @@
-Aquí tienes tu README corregido y bien formateado en Markdown listo para copiar y pegar (con bloques de código, separadores y estructura consistentes):
-
-````markdown
 # PortScanner Pro - Security Automation Tool
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
