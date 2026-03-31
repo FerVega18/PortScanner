@@ -1,9 +1,13 @@
+Aquí tienes tu README corregido y bien formateado en Markdown listo para copiar y pegar (con bloques de código, separadores y estructura consistentes):
 
+````markdown
 # PortScanner Pro - Security Automation Tool
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Code Style](https://img.shields.io/badge/code%20style-pep8-yellow.svg)](https://www.python.org/dev/peps/pep-0008/)
+
+---
 
 ## Table of Contents
 - [Overview](#overview)
@@ -28,25 +32,26 @@
 
 In cybersecurity, reconnaissance is the first and most critical phase of any security assessment. Before an attacker can exploit a system, they must find open doors (ports). This tool automates that discovery process and helps security professionals:
 
-- Identify exposed services before attackers do
-- Audit internal networks for compliance
-- Generate structured reports for documentation
-- Learn networking fundamentals through clean, documented code
+- Identify exposed services before attackers do  
+- Audit internal networks for compliance  
+- Generate structured reports for documentation  
+- Learn networking fundamentals through clean, documented code  
 
 ### Key Differentiators
 
 Unlike simple port scanners, this tool:
-- Prioritizes security with built-in risk assessment
-- Produces professional reports in JSON format
-- Follows clean architecture principles (separation of concerns)
-- Includes comprehensive documentation for learning
+
+- Prioritizes security with built-in risk assessment  
+- Produces professional reports in JSON format  
+- Follows clean architecture principles (separation of concerns)  
+- Includes comprehensive documentation for learning  
 
 ---
 
 ## Features
 
 | Feature | Description |
-|---------|-------------|
+|--------|-------------|
 | TCP Port Scanning | Scans specified ports with configurable timeouts |
 | Risk Assessment | Identifies dangerous ports (FTP, Telnet, MySQL, RDP) |
 | JSON Reports | Generates structured, timestamped reports |
@@ -61,97 +66,109 @@ Unlike simple port scanners, this tool:
 
 This project follows clean architecture principles with clear separation of concerns:
 
-
+```bash
 PortScanner/
 ├── main.py           # Entry point and orchestrator
 ├── scanner.py        # Network scanning engine (socket logic)
 ├── reporter.py       # Report generation and alerts (JSON output)
 ├── config.json       # External configuration (dangerous ports)
 └── README.md         # Documentation
-
+````
 
 ### Module Responsibilities
 
-| Module | Responsibility | Knows About |
-|--------|---------------|-------------|
-| `main.py` | Orchestrates the flow, parses CLI arguments | Nothing about networking or JSON |
-| `scanner.py` | TCP connections, port state detection | Sockets, but NOT JSON or reports |
-| `reporter.py` | JSON output, security alerts | JSON, but NOT networking |
-| `config.json` | Stores configuration data | Pure data, no code |
+| Module        | Responsibility                              | Knows About                      |
+| ------------- | ------------------------------------------- | -------------------------------- |
+| `main.py`     | Orchestrates the flow, parses CLI arguments | Nothing about networking or JSON |
+| `scanner.py`  | TCP connections, port state detection       | Sockets, but NOT JSON or reports |
+| `reporter.py` | JSON output, security alerts                | JSON, but NOT networking         |
+| `config.json` | Stores configuration data                   | Pure data, no code               |
 
 **This separation ensures:**
-- Maintainability - change one module without breaking others
-- Testability - each module can be tested independently
-- Readability - clear purpose for each file
+
+* Maintainability
+* Testability
+* Readability
 
 ---
 
 ## Installation
 
 ### Prerequisites
-- Python 3.8 or higher
-- Git (optional, for cloning)
+
+* Python 3.8 or higher
+* Git (optional)
 
 ### Step-by-Step Setup
 
 **1. Clone the repository**
+
+```bash
 git clone https://github.com/yourusername/portscanner-pro.git
 cd portscanner-pro
-
+```
 
 **2. Verify Python installation**
+
+```bash
 python --version
-# Should output: Python 3.8+
+```
 
+**3. No additional dependencies required**
 
-**3. No additional dependencies required**  
-This tool uses only Python standard libraries:
-- `socket` - for network connections
-- `json` - for configuration and reports
-- `argparse` - for command-line interface
-- `logging` - for debug and error tracking
-- `datetime` - for timestamps
+Uses only standard libraries:
 
-**4. Verify the installation**
+* `socket`
+* `json`
+* `argparse`
+* `logging`
+* `datetime`
+
+**4. Verify installation**
+
+```bash
 python main.py --help
-
+```
 
 ---
 
 ## Usage
 
 ### Basic Syntax
-python main.py <TARGET_IP> [OPTIONS]
 
+```bash
+python main.py <TARGET_IP> [OPTIONS]
+```
 
 ### Command-Line Options
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| `TARGET_IP` | IP address to scan (required) | `192.168.1.1` |
-| `-p, --ports` | Comma-separated ports to scan | `-p 22,80,443` |
-| `-t, --timeout` | Connection timeout in seconds | `-t 2.0` |
-| `-o, --output` | Custom output filename | `-o report.json` |
-| `--debug` | Enable debug logging | `--debug` |
-| `-h, --help` | Show help menu | `-h` |
+| Option          | Description                   | Example          |
+| --------------- | ----------------------------- | ---------------- |
+| `TARGET_IP`     | IP address to scan (required) | `192.168.1.1`    |
+| `-p, --ports`   | Comma-separated ports         | `-p 22,80,443`   |
+| `-t, --timeout` | Timeout in seconds            | `-t 2.0`         |
+| `-o, --output`  | Output filename               | `-o report.json` |
+| `--debug`       | Debug logging                 | `--debug`        |
+| `-h, --help`    | Help menu                     | `-h`             |
 
 ### Quick Start Examples
 
-# Scan common ports (from config.json)
+```bash
+# Scan common ports
 python main.py 192.168.1.1
 
 # Scan specific ports
 python main.py 192.168.1.1 -p 22,80,443,3306
 
-# Scan with custom timeout (slower networks)
+# Custom timeout
 python main.py 192.168.1.1 -t 2.5
 
-# Scan with debug output (for troubleshooting)
+# Debug mode
 python main.py 127.0.0.1 --debug
 
-# Save report with custom name
+# Custom output
 python main.py 192.168.1.1 -o security_audit.json
-
+```
 
 ---
 
@@ -159,107 +176,73 @@ python main.py 192.168.1.1 -o security_audit.json
 
 ### Example 1: Scanning Localhost
 
-
+```bash
 $ python main.py 127.0.0.1
-
-    ╔══════════════════════════════════════════════════════════════╗
-    ║     PYTHON PORT SCANNER - Security Automation Tool           ║
-    ║                   Professional Port Scanner                  ║
-    ║                        Version 1.0.0                         ║
-    ╚══════════════════════════════════════════════════════════════╝
 
 Target: 127.0.0.1
 Scanning common ports: [21, 22, 23, 80, 443, 3306, 3389]
 Timeout: 1.0 seconds
 
-Scanning 127.0.0.1 - 7 ports to check...
---------------------------------------------------
-Progress: 7/7 - Checking port 3389...
-==================================================
 Scan completed. Open ports found: 2
-==================================================
-
-SECURITY ALERTS: No dangerous ports detected
-System appears secure based on known vulnerable ports
-
-Report saved: scan_report_127_0_0_1_20260330_171530.json
-
-==================================================
-SCAN SUMMARY
-==================================================
-Total ports scanned: 7
-Open ports: 2
-Closed ports: 3
-Filtered ports: 2
 
 Open ports found: [22, 80]
 
-Scan completed successfully
+Report saved: scan_report_127_0_0_1_20260330_171530.json
+```
 
+---
 
 ### Example 2: Detecting Dangerous Ports
 
-
+```bash
 $ python main.py 192.168.1.100
 
 SECURITY ALERTS - Risk Level: HIGH
-============================================================
-Found 2 potentially dangerous open ports:
 
 PORT 21 - FTP
-   Risk: HIGH
-   Issue: FTP transmits credentials in plain text
-   Recommendation: Disable FTP and use SFTP or FTPS with encryption
-----------------------------------------
-PORT 3389 - RDP
-   Risk: HIGH
-   Issue: Remote Desktop exposed to network
-   Recommendation: Use VPN or RDP Gateway, enable NLA
-----------------------------------------
+Risk: HIGH
+Issue: FTP transmits credentials in plain text
+Recommendation: Use SFTP or FTPS
 
-CRITICAL ALERT: 2 HIGH-RISK port(s) detected
-   Immediate action recommended to mitigate these risks
+PORT 3389 - RDP
+Risk: HIGH
+Issue: Remote Desktop exposed
+Recommendation: Use VPN or enable NLA
 ```
 
 ---
 
 ## Configuration
 
-All configuration is stored in `config.json`. You can modify it without touching the code.
+All configuration is stored in `config.json`.
 
 ### Default Configuration
 
-
+```json
 {
-    "dangerous_ports": {
-        "21": {
-            "service": "FTP",
-            "risk": "HIGH",
-            "message": "FTP transmits credentials in plain text"
-        },
-        "23": {
-            "service": "Telnet",
-            "risk": "HIGH",
-            "message": "Telnet is completely insecure"
-        },
-        "3306": {
-            "service": "MySQL",
-            "risk": "MEDIUM",
-            "message": "Database exposed to network"
-        }
+  "dangerous_ports": {
+    "21": {
+      "service": "FTP",
+      "risk": "HIGH",
+      "message": "FTP transmits credentials in plain text"
     },
-    "scan_settings": {
-        "common_ports": [21, 22, 23, 80, 443, 3306, 3389],
-        "default_timeout": 1.0
+    "23": {
+      "service": "Telnet",
+      "risk": "HIGH",
+      "message": "Telnet is completely insecure"
+    },
+    "3306": {
+      "service": "MySQL",
+      "risk": "MEDIUM",
+      "message": "Database exposed to network"
     }
+  },
+  "scan_settings": {
+    "common_ports": [21, 22, 23, 80, 443, 3306, 3389],
+    "default_timeout": 1.0
+  }
 }
-
-
-### Customizing Your Scanner
-
-1. **Add new dangerous ports** → Add entries under `dangerous_ports`
-2. **Change default ports** → Modify the `common_ports` array
-3. **Adjust timeout** → Change `default_timeout` value
+```
 
 ---
 
@@ -267,91 +250,59 @@ All configuration is stored in `config.json`. You can modify it without touching
 
 ### JSON Report Structure
 
-Each scan generates a JSON file with this structure:
-
-
+```json
 {
-    "scan_metadata": {
-        "target_ip": "192.168.1.1",
-        "scan_timestamp": "2026-03-30T17:15:30.123456",
-        "scanner_version": "1.0.0",
-        "tool_name": "Python Port Scanner"
-    },
-    "statistics": {
-        "total_scanned": 7,
-        "open_count": 2,
-        "closed_count": 3,
-        "filtered_count": 2,
-        "open_ports_list": [22, 80]
-    },
-    "open_ports_details": [
-        {
-            "port": 22,
-            "state": "open",
-            "service": "ssh"
-        }
-    ],
-    "security_analysis": {
-        "alerts": [],
-        "total_risks": 0,
-        "risk_level": "LOW"
-    }
+  "scan_metadata": {
+    "target_ip": "192.168.1.1",
+    "scan_timestamp": "2026-03-30T17:15:30",
+    "scanner_version": "1.0.0"
+  },
+  "statistics": {
+    "total_scanned": 7,
+    "open_count": 2
+  }
 }
+```
 
 ### Filename Convention
-Reports are automatically named: `scan_report_<IP>_<YYYYMMDD_HHMMSS>.json`
+
+```
+scan_report_<IP>_<YYYYMMDD_HHMMSS>.json
+```
 
 ---
 
 ## Security Best Practices
 
-**IMPORTANT: Use Responsibly**
-
-This tool is designed for authorized security assessments only.
-
 ### Ethical Guidelines
 
-| DO | DON'T |
-|----|-------|
-| Scan systems you own | Scan systems without permission |
-| Test your own network | Attack production systems |
-| Use in CTF competitions | Use for unauthorized reconnaissance |
-| Document findings properly | Share results without authorization |
+| DO                   | DON'T                     |
+| -------------------- | ------------------------- |
+| Scan systems you own | Scan without permission   |
+| Test your network    | Attack production systems |
+| Use in CTF           | Unauthorized recon        |
 
 ### Legal Considerations
 
-Unauthorized port scanning may violate:
-- Computer Fraud and Abuse Act (CFAA) in the US
-- Similar laws in other jurisdictions
-- Terms of Service of cloud providers
-- Corporate security policies
+Unauthorized port scanning may violate laws and policies.
 
-**Always obtain written permission before scanning any system you don't own.**
+**Always obtain permission before scanning.**
 
 ---
 
 ## Roadmap
 
-### Version 1.0 (Current)
-- TCP port scanning with socket library
-- JSON configuration for dangerous ports
-- Structured JSON report generation
-- Console alerts with risk assessment
-- Type hints and comprehensive documentation
+### Version 1.1
 
-### Version 1.1 (Planned)
-- Multi-threading for faster scans
-- IP range scanning (CIDR notation)
-- Service version detection (banner grabbing)
-- CSV export option
-- Progress bar visualization
+* Multi-threading
+* IP range scanning
+* Banner grabbing
 
-### Version 2.0 (Future)
-- OS fingerprinting
-- Vulnerability database integration
-- Web dashboard for reports
-- Scheduled scans
-- Email alerts for critical findings
+### Version 2.0
+
+* OS fingerprinting
+* Vulnerability integration
+* Web dashboard
 
 ---
 
@@ -359,27 +310,21 @@ Unauthorized port scanning may violate:
 
 **María Fernanda Quesada Vega**
 
-- Cybersecurity Professional
-- Python Automation Specialist
-- [GitHub Profile](https://github.com/yourusername)
-- [LinkedIn Profile](https://linkedin.com/in/yourprofile)
-
-### Why This Project?
-
-This tool demonstrates:
-- Deep understanding of network protocols (TCP/IP)
-- Proficiency in Python automation and clean architecture
-- Knowledge of security best practices and risk assessment
-- Ability to write production-ready, documented code
+* Cybersecurity Enthusiast
+* Python Developer
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see `LICENSE`
 
 ---
 
 **Made with Python and Security in mind**
+
+```
+
+Si quieres, puedo ayudarte a dejarlo aún más “pro nivel GitHub” (con badges reales, screenshots, demo GIF, etc.).
 ```
 
