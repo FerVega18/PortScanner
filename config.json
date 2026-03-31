@@ -1,0 +1,23 @@
+{
+    "dangerous_ports": {
+        "21": {
+            "service": "FTP",
+            "risk": "HIGH",
+            "message": "FTP transmits credentials in plain text. Use SFTP instead."
+        },
+        "23": {
+            "service": "Telnet",
+            "risk": "HIGH", 
+            "message": "Telnet is insecure. All communication is unencrypted."
+        },
+        "3306": {
+            "service": "MySQL",
+            "risk": "MEDIUM",
+            "message": "MySQL database exposed. Check authentication settings."
+        }
+    },
+    "scan_settings": {
+        "common_ports": [21, 22, 23, 80, 443, 3306, 3389],
+        "default_timeout": 1.0
+    }
+}
