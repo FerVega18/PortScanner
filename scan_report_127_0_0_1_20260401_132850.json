@@ -1,0 +1,21 @@
+{
+    "scan_metadata": {
+        "target_ip": "127.0.0.1",
+        "scan_timestamp": "2026-04-01T13:28:50.045861",
+        "scanner_version": "1.0.0",
+        "tool_name": "Python Port Scanner"
+    },
+    "statistics": {
+        "total_scanned": 7,
+        "open_count": 0,
+        "closed_count": 0,
+        "filtered_count": 7,
+        "open_ports_list": []
+    },
+    "open_ports_details": [],
+    "security_analysis": {
+        "alerts": [],
+        "total_risks": 0,
+        "risk_level": "LOW"
+    }
+}

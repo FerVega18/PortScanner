@@ -40,147 +40,160 @@ class PortScanner:
         self.closed_ports=[]
         self.filtered_ports=[]
 
-        def scan_port(selft, ip:str, port: int) -> Dict[str, Any]:
-            """
-            Sacan a single port on target IP address.
+    def scan_port(self, ip:str, port: int) -> Dict[str, Any]:
+        """
+        Sacan a single port on target IP address.
 
-            This method attempts a TCP connection to the specified port and
-            determines its sate based on the response. 
+        This method attempts a TCP connection to the specified port and
+        determines its sate based on the response. 
 
-            Possible states:
-                - open: Sussessful TCP hanshake (service is listening)
-                - 'closed': Connection refused (no service on this port)
-                - 'filtered': Timeout or no response (firewall likely present)
-                - 'error': Network error or invalid IP
+        Possible states:
+            - open: Sussessful TCP hanshake (service is listening)
+            - 'closed': Connection refused (no service on this port)
+            - 'filtered': Timeout or no response (firewall likely present)
+            - 'error': Network error or invalid IP
 
-            Args:
-                ip: Target Ip addres (e.g. '192.168.1.1')
-                port: Port number to scan (1-65535)
-            Returns:
-                Dictionary with port information
+        Args:
+            ip: Target Ip addres (e.g. '192.168.1.1')
+            port: Port number to scan (1-65535)
+        Returns:
+            Dictionary with port information
                 {
-                    'port': int,
-                    'state': str,
-                    'service': str or None,
-                    'error': str or None
+                'port': int,
+                'state': str,
+                'service': str or None,
+                'error': str or None
                 }
-            """
-            result = {
-                'port': port,
-                'state': 'unknown',
-                'service': None,
-                'error': None
-            }
-
-            try:
-                # Create a TCP socket (IPv4)
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                #Set timeout to avoid handing
-                sock.settimeout(self.timeout)
-
-                # Attement connetcion. connect_ex() returns 0 on success, error code ot herwise
-                connection_result = sock.connect_ex((ip, port))    
-
-                if connection_result == 0:
-                    #Connection successful, port is open
-                    result['state'] = 'open'
-                    try:
-                        result['service'] = socket.getservbyport(port)
-                    except OSError:
-                        result['service'] = 'unknown'
-
-                        logger.info(f"Port{port}: OPEN")
-
-                elif connection_result == 111:
-                   #Connection refused, port is closed
-                   result['state'] = 'closed'
-                   logger.info(f"Port {port}: CLOSED")
-                else:
-                    #Other error codes typically indicate filtered state
-                    result['state'] = 'filtered'
-                    logger.info(f"Port {port}: FILTERED (error: {connection_result})")
-
-            except socket.timeout:
-                #No response within timeout, likely filtered
-                result['state'] = 'filtered'
-                logger.debug(f"Port {port}: FILTERED (timeout)")
-
-            except socket.error as e:
-                #DNS resulution failure or invalid IP
-                result['state'] = 'error'
-                result['error'] = f"DNS error - {e}"
-                logger.error(f"Port {port}:DNS ERROR - {e}")
-
-            except ConnectionRefusedError:
-                #Explicit connection refusal, port is closed
+        """
+        result = {
+            'port': port,
+            'state': 'unknown',
+            'service': None,
+            'error': None
+        }
+        sock = None
+        try:
+            # Create a TCP socket (IPv4)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #Set timeout to avoid handing
+            sock.settimeout(self.timeout)
+    
+            # Attement connetcion. connect_ex() returns 0 on success, error code ot herwise
+            connection_result = sock.connect_ex((ip, port))    
+    
+            if connection_result == 0:
+                #Connection successful, port is open
+                result['state'] = 'open'
+                try:
+                    result['service'] = socket.getservbyport(port)
+                except OSError:
+                    result['service'] = 'unknown'
+    
+                logger.info(f"Port {port}: OPEN")
+    
+            elif connection_result in (111, 10061):
+                #Connection refused, port is closed
                 result['state'] = 'closed'
-                logger.debug(f"Port {port}: CLOSED (connection refused)")
+                logger.info(f"Port {port}: CLOSED")
 
-            except Exception as e:
-                #Any other unexpected error
-                result['state'] = 'error'
-                result['error'] = str(e)
-                logger.error(f"Port {port}: Unexpected error - {e}")
-
-            #Track result for summary statistics
-            if result['state'] == 'open':
-                self.open_ports.append(result)
-            elif result['state'] == 'closed':
-                self.closed_ports.append(result)
-            elif result['state'] == 'filtered':
-                self.filtered_ports.append(result)
-
-            return result
+            elif connection_result == 10035:
+                  #Other error codes typically indicate filtered state
+                 result['state'] = 'filtered'
+                 logger.info(f"Port {port}: FILTERED (timeout/in progress)")
+                 
+            else:
+                 result['state'] = 'error'
+                 result['error'] = f"Unknown error code: {connection_result}"
+                 logger.warning(f"Port {port}: UNKNOWN ERROR ({connection_result})")
+    
+        except socket.timeout:
+            #No response within timeout, likely filtered
+            result['state'] = 'filtered'
+            logger.debug(f"Port {port}: FILTERED (timeout)")
+    
+        except ConnectionRefusedError:
+            #Explicit connection refusal, port is closed
+            result['state'] = 'closed'
+            logger.debug(f"Port {port}: CLOSED (connection refused)")
         
-        def scan_ports(self, ip: str, ports: List[int]) -> List:
-            """
-            Scans multiple ports on target IP address.
+        except socket.error as e:
+            #DNS resulution failure or invalid IP
+            result['state'] = 'error'
+            result['error'] = f"DNS error - {e}"
+            logger.error(f"Port {port}: DNS ERROR - {e}")
+    
+        except Exception as e:
+            #Any other unexpected error
+            result['state'] = 'error'
+            result['error'] = str(e)
+            logger.error(f"Port {port}: Unexpected error - {e}")
+        finally:
+            if sock:
+                sock.close()
+    
+        #Track result for summary statistics
+        if result['state'] == 'open':
+            self.open_ports.append(result)
+        elif result['state'] == 'closed':
+            self.closed_ports.append(result)
+        elif result['state'] == 'filtered':
+            self.filtered_ports.append(result)
+    
+        return result
+           
 
-            Iterates througth a list of ports and returns for each.
-
-            Args:
-                ip: Target IP address
-                ports: List of port numbers to scan
-            Returns:
-                List of scan results ( each resilt is a dict from scan_port)
-            """
-
-            results = []
-            total = len(ports)
-
-            print(f"\nScanning {ip} - {total} ports to check...")
-            print("-" * 50)
-
-            for idx, port in enumerate(ports, 1):
-                #Show progress on the same line 
-                print(f"Progress: {idx}/{total} - Checking ports {port}....", end='\r')
-                result = self.scan_port(ip, port)
-                results.append(result)
-
-            print("\n" + "-" * 50)
-            print(f"SCAN COMPLETE. Open ports found: {len(self.open_ports)}")
-            print("=" * 50)
-
-            return results
-        
-        def get_open_ports(self) -> list:
-            """ Returns a list of open ports found during the scan."""
-            return [p['port'] for p in self.open_ports]
-        
-        def get_summary(self) -> Dict[str, Any]:
-            """ 
-            Generates summary statistics of the last scan.
-            Returns:
-                Dictionary with scan statistics
-            """
-            return{
-                'total_scanned': len(self.open_ports) + len(self.closed_ports) + 
-                len(self.filtered_ports),
-                'open_count': len(self.open_ports),
-                'closed_count': len(self.closed_ports),
-                'filtered_count': len(self.filtered_ports),
-                'open_ports_list': self.get_open_ports()
-            }
+    def scan_ports(self, ip: str, ports: List[int]) -> List[Dict[str, Any]]:
+        """
+        Scans multiple ports on target IP address.
+    
+        Iterates througth a list of ports and returns for each.
+    
+        Args:
+            ip: Target IP address
+            ports: List of port numbers to scan
+        Returns:
+            List of scan results ( each resilt is a dict from scan_port)
+        """
+        self.open_ports.clear()
+        self.closed_ports.clear()
+        self.filtered_ports.clear() 
+    
+        results = []
+        total = len(ports)
+    
+        print(f"\nScanning {ip} - {total} ports to check...")
+        print("-" * 50)
+    
+        for idx, port in enumerate(ports, 1):
+            #Show progress on the same line 
+            print(f"Progress: {idx}/{total} - Checking port {port}....", end='\r')
+            result = self.scan_port(ip, port)
+            results.append(result)
+    
+        print("\n" + "-" * 50)
+        print(f"SCAN COMPLETE. Open ports found: {len(self.open_ports)}")
+        print("=" * 50)
+    
+        return results
+    
+    def get_open_ports(self) -> list:
+        """ Returns a list of open ports found during the scan."""
+        return [p['port'] for p in self.open_ports]
+    
+    def get_summary(self) -> Dict[str, Any]:
+        """ 
+        Generates summary statistics of the last scan.
+        Returns:
+            Dictionary with scan statistics
+        """
+        return {
+            'total_scanned': len(self.open_ports) + len(self.closed_ports) + 
+            len(self.filtered_ports),
+            'open_count': len(self.open_ports),
+            'closed_count': len(self.closed_ports),
+            'filtered_count': len(self.filtered_ports),
+            'open_ports_list': self.get_open_ports()
+        }
                 
             
 
