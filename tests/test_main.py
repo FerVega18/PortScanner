@@ -78,3 +78,43 @@ class MainTests(TestCase):
 
         self.assertIsNone(result)
         self.assertIn("Scan completed successfully", output.getvalue())
+
+    @patch("main.PortScanner")
+    @patch("main.load_config", return_value={})
+    def test_out_of_range_ports_are_rejected_before_scan(
+        self, load_config, scanner_class
+    ):
+        """
+        Verify that the CLI rejects ports outside the supported range.
+
+        Scenario:
+            The user supplies port 0 or 65536 through --ports.
+
+        Expected result:
+            The command exits with status 1, explains the valid range,
+            and stops before creating a scanner.
+        """
+        for port in ("0", "65536"):
+            with self.subTest(port=port):
+                output = StringIO()
+                args = ["main.py", "127.0.0.1", "--ports", port]
+                with patch("sys.argv", args), redirect_stdout(output):
+                    with self.assertRaises(SystemExit) as exit_error:
+                        main.main()
+
+                self.assertEqual(exit_error.exception.code, 1)
+                self.assertIn("1–65535", output.getvalue())
+
+        scanner_class.assert_not_called()
+
+    def test_port_range_accepts_both_boundaries(self):
+        """
+        Verify that parsing accepts the first and last supported ports.
+
+        Scenario:
+            The user supplies a comma-separated list containing 1 and 65535.
+
+        Expected result:
+            The parser returns both boundary ports as integers.
+        """
+        self.assertEqual(main.parse_ports("1,65535"), [1, 65535])

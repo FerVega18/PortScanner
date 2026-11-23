@@ -103,13 +103,21 @@ def parse_ports(ports_str: str) -> list:
         
     Returns:
         List of integers
+
+    Each port must be between 1 and 65535, inclusive.
     """
     try:
-        return [int(p.strip()) for p in ports_str.split(',')]
+        ports = [int(p.strip()) for p in ports_str.split(',')]
     except ValueError:
         print(f"Error: Invalid port format: {ports_str}")
         print("   Use comma-separated numbers, e.g., 22,80,443")
         sys.exit(1)
+
+    if any(port < 1 or port > 65535 for port in ports):
+        print("Error: Ports must be in the range 1–65535.")
+        sys.exit(1)
+
+    return ports
 
 
 def print_banner():
