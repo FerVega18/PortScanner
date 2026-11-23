@@ -14,6 +14,11 @@
             "service": "MySQL",
             "risk": "MEDIUM",
             "message": "MySQL database exposed. Check authentication settings."
+        },
+        "3389": {
+            "service": "RDP",
+            "risk": "HIGH",
+            "message": "Check whether Remote Desktop access is expected and restricted."
         }
     },
     "scan_settings": {
