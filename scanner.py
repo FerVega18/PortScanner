@@ -2,6 +2,9 @@
 Port scanning module
 Responsible for TCP connection logic and network error handling
 """
+
+# Provides symbolic names for system error codes, such as ETIMEDOUT.
+import errno
 # Provides low-level networking interface for TCP/IP connections
 import socket
 # Type hints for better code documentation and IDE support
@@ -13,6 +16,8 @@ import logging
 # Provides timestamp functionality for scan reports
 # datetime.now() gives current date and time
 from datetime import datetime
+# Provides multithreading support for concurrent port scanning
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Create logger for this module
 logger = logging.getLogger(__name__)
@@ -40,29 +45,33 @@ class PortScanner:
         self.closed_ports=[]
         self.filtered_ports=[]
 
-    def scan_port(self, ip:str, port: int) -> Dict[str, Any]:
+    def scan_port(self, ip: str, port: int) -> Dict[str, Any]:
         """
-        Sacan a single port on target IP address.
+        Scan a single TCP port on a target IP address.
 
-        This method attempts a TCP connection to the specified port and
-        determines its sate based on the response. 
+        This method attempts to establish a TCP connection to the specified
+        port using a socket. The result of the connection attempt is used to
+        determine the port state in a cross-platform way (without relying on
+        OS-specific error codes).
 
-        Possible states:
-            - open: Sussessful TCP hanshake (service is listening)
-            - 'closed': Connection refused (no service on this port)
-            - 'filtered': Timeout or no response (firewall likely present)
-            - 'error': Network error or invalid IP
+        Port states:
+            - 'open': Successful TCP connection (service is listening)
+            - 'closed': Connection failed or explicitly refused
+            - 'filtered': The connection attempt timed out. The cause of the
+            timeout remains unknown.
+            - 'error': Unexpected issue (e.g., DNS failure, invalid IP)
 
         Args:
-            ip: Target Ip addres (e.g. '192.168.1.1')
-            port: Port number to scan (1-65535)
+            ip (str): Target IP address (e.g., '192.168.1.1')
+            port (int): Port number to scan (range: 1–65535)
+
         Returns:
-            Dictionary with port information
+            Dict[str, Any]: Dictionary containing scan result with structure:
                 {
-                'port': int,
-                'state': str,
-                'service': str or None,
-                'error': str or None
+                    'port': int,           # Port number scanned
+                    'state': str,          # Port state (open/closed/filtered/error)
+                    'service': str | None, # Detected service name (if available)
+                    'error': str | None    # Error message (if applicable)
                 }
         """
         result = {
@@ -71,111 +80,134 @@ class PortScanner:
             'service': None,
             'error': None
         }
+
         sock = None
+
         try:
-            # Create a TCP socket (IPv4)
+            # Create TCP socket (IPv4, stream-based connection)
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            #Set timeout to avoid handing
+
+            # Set timeout to prevent blocking on unresponsive ports
             sock.settimeout(self.timeout)
-    
-            # Attement connetcion. connect_ex() returns 0 on success, error code ot herwise
-            connection_result = sock.connect_ex((ip, port))    
-    
+
+            # Attempt TCP connection (returns 0 if successful)
+            connection_result = sock.connect_ex((ip, port))
+
             if connection_result == 0:
-                #Connection successful, port is open
+                # Connection successful → port is OPEN
                 result['state'] = 'open'
+
+                # Try to resolve known service name (e.g., 80 → http)
                 try:
                     result['service'] = socket.getservbyport(port)
                 except OSError:
+                    # Service not recognized in system database
                     result['service'] = 'unknown'
-    
+
                 logger.info(f"Port {port}: OPEN")
-    
-            elif connection_result in (111, 10061):
-                #Connection refused, port is closed
+
+            # Handle a timeout returned as an error code by connect_ex().
+            # The socket.timeout handler covers the raised exception.
+            elif connection_result == errno.ETIMEDOUT:
+                result['state'] = 'filtered'
+                logger.debug(f"Port {port}: FILTERED (timeout code)")
+
+            else:
+                # Non-zero result → connection failed (treated as CLOSED)
+                # Avoids dependency on OS-specific error codes
                 result['state'] = 'closed'
                 logger.info(f"Port {port}: CLOSED")
 
-            elif connection_result == 10035:
-                  #Other error codes typically indicate filtered state
-                 result['state'] = 'filtered'
-                 logger.info(f"Port {port}: FILTERED (timeout/in progress)")
-                 
-            else:
-                 result['state'] = 'error'
-                 result['error'] = f"Unknown error code: {connection_result}"
-                 logger.warning(f"Port {port}: UNKNOWN ERROR ({connection_result})")
-    
         except socket.timeout:
-            #No response within timeout, likely filtered
+            # No response within timeout → likely FILTERED by firewall
             result['state'] = 'filtered'
             logger.debug(f"Port {port}: FILTERED (timeout)")
-    
+
         except ConnectionRefusedError:
-            #Explicit connection refusal, port is closed
+            # Explicit refusal → port is CLOSED
             result['state'] = 'closed'
             logger.debug(f"Port {port}: CLOSED (connection refused)")
-        
-        except socket.error as e:
-            #DNS resulution failure or invalid IP
+
+        except socket.gaierror as e:
+            # Address-related error (DNS resolution failure)
             result['state'] = 'error'
             result['error'] = f"DNS error - {e}"
             logger.error(f"Port {port}: DNS ERROR - {e}")
-    
+
         except Exception as e:
-            #Any other unexpected error
+            # Any other unexpected exception
             result['state'] = 'error'
             result['error'] = str(e)
             logger.error(f"Port {port}: Unexpected error - {e}")
+
         finally:
+            # Ensure socket is always closed to free system resources
             if sock:
                 sock.close()
-    
-        #Track result for summary statistics
+
+        # Store result for later summary/statistics
         if result['state'] == 'open':
             self.open_ports.append(result)
         elif result['state'] == 'closed':
             self.closed_ports.append(result)
         elif result['state'] == 'filtered':
             self.filtered_ports.append(result)
-    
+
         return result
-           
 
     def scan_ports(self, ip: str, ports: List[int]) -> List[Dict[str, Any]]:
         """
-        Scans multiple ports on target IP address.
-    
-        Iterates througth a list of ports and returns for each.
-    
+        Scan multiple ports on a target IP using multithreading.
+
+        This method distributes port scanning tasks across multiple threads
+        to significantly improve performance compared to sequential scanning.
+
         Args:
-            ip: Target IP address
-            ports: List of port numbers to scan
+            ip (str): Target IP address
+            ports (List[int]): List of ports to scan
+
         Returns:
-            List of scan results ( each resilt is a dict from scan_port)
+            List[Dict[str, Any]]: List of scan results
         """
+
+        # Clear previous scan results
         self.open_ports.clear()
         self.closed_ports.clear()
-        self.filtered_ports.clear() 
-    
+        self.filtered_ports.clear()
+
         results = []
         total = len(ports)
-    
-        print(f"\nScanning {ip} - {total} ports to check...")
+
+        print(f"\nScanning {ip} - {total} ports (multithreaded)...")
         print("-" * 50)
-    
-        for idx, port in enumerate(ports, 1):
-            #Show progress on the same line 
-            print(f"Progress: {idx}/{total} - Checking port {port}....", end='\r')
-            result = self.scan_port(ip, port)
-            results.append(result)
-    
+
+        # Define number of threads (max 100 or total ports)
+        max_threads = min(100, total)
+
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            future_to_port = {
+                executor.submit(self.scan_port, ip, port): port
+                for port in ports
+            }
+
+            for idx, future in enumerate(as_completed(future_to_port), 1):
+                port = future_to_port[future]
+
+                try:
+                    result = future.result()
+                    results.append(result)
+
+                    print(f"Progress: {idx}/{total} - Port {port} done", end='\r')
+
+                except Exception as e:
+                    logger.error(f"Error scanning port {port}: {e}")
+
         print("\n" + "-" * 50)
         print(f"SCAN COMPLETE. Open ports found: {len(self.open_ports)}")
         print("=" * 50)
-    
+
         return results
-    
+
     def get_open_ports(self) -> list:
         """ Returns a list of open ports found during the scan."""
         return [p['port'] for p in self.open_ports]
