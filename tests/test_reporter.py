@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 import unittest
 
-from reporter import SecurityReporter
+from portscanner.reporter import SecurityReporter
 
 
 class SecurityReporterTests(unittest.TestCase):
@@ -44,7 +44,9 @@ class SecurityReporterTests(unittest.TestCase):
             If the RDP rule is removed from config.json, the reporter
             produces an empty alert list and this test fails.
         """
-        config_path = Path(__file__).resolve().parent.parent / "config.json"
+        config_path = (
+            Path(__file__).resolve().parent.parent / "portscanner" / "config.json"
+        )
         config = json.loads(config_path.read_text(encoding="utf-8"))
         reporter = SecurityReporter(config)
 
@@ -71,7 +73,9 @@ class SecurityReporterTests(unittest.TestCase):
             The security analysis contains an empty alert list because
             the reporter applies alert rules only to open ports.
         """
-        config_path = Path(__file__).resolve().parent.parent / "config.json"
+        config_path = (
+            Path(__file__).resolve().parent.parent / "portscanner" / "config.json"
+        )
         config = json.loads(config_path.read_text(encoding="utf-8"))
         reporter = SecurityReporter(config)
 

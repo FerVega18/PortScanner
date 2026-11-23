@@ -5,12 +5,12 @@ from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch
 
-import main
+from portscanner import cli as main
 
 
 class MainTests(TestCase):
-    @patch("main.SecurityReporter")
-    @patch("main.PortScanner")
+    @patch("portscanner.cli.SecurityReporter")
+    @patch("portscanner.cli.PortScanner")
     def test_failed_report_save_exits_with_error(self, scanner_class, reporter_class):
         """
         Verify that a completed scan reports a failed JSON export to the caller.
@@ -35,7 +35,7 @@ class MainTests(TestCase):
         output = StringIO()
 
         with patch("sys.argv", ["main.py", "127.0.0.1"]), \
-                patch("main.load_config", return_value={}), \
+                patch("portscanner.cli.load_config", return_value={}), \
                 redirect_stdout(output):
             with self.assertRaises(SystemExit) as exit_error:
                 main.main()
@@ -44,8 +44,8 @@ class MainTests(TestCase):
         self.assertIn("JSON report could not be saved", output.getvalue())
         self.assertNotIn("Scan completed successfully", output.getvalue())
 
-    @patch("main.SecurityReporter")
-    @patch("main.PortScanner")
+    @patch("portscanner.cli.SecurityReporter")
+    @patch("portscanner.cli.PortScanner")
     def test_successful_report_save_completes_successfully(
         self, scanner_class, reporter_class
     ):
@@ -72,15 +72,15 @@ class MainTests(TestCase):
         output = StringIO()
 
         with patch("sys.argv", ["main.py", "127.0.0.1"]), \
-                patch("main.load_config", return_value={}), \
+                patch("portscanner.cli.load_config", return_value={}), \
                 redirect_stdout(output):
             result = main.main()
 
         self.assertIsNone(result)
         self.assertIn("Scan completed successfully", output.getvalue())
 
-    @patch("main.PortScanner")
-    @patch("main.load_config", return_value={})
+    @patch("portscanner.cli.PortScanner")
+    @patch("portscanner.cli.load_config", return_value={})
     def test_out_of_range_ports_are_rejected_before_scan(
         self, load_config, scanner_class
     ):

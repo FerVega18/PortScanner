@@ -5,14 +5,14 @@ import socket
 import unittest
 from unittest.mock import patch
 
-from scanner import PortScanner
+from portscanner.scanner import PortScanner
 
 
 class PortScannerTests(unittest.TestCase):
     """Check the state reported for a single TCP connection attempt."""
 
-    @patch("scanner.socket.getservbyport", return_value="http")
-    @patch("scanner.socket.socket")
+    @patch("portscanner.scanner.socket.getservbyport", return_value="http")
+    @patch("portscanner.scanner.socket.socket")
     def test_successful_connection_marks_port_open(
         self, mock_socket_class, mock_service_lookup
     ):
@@ -35,7 +35,7 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["port"], 80)
         self.assertEqual(result["state"], "open")
 
-    @patch("scanner.socket.socket")
+    @patch("portscanner.scanner.socket.socket")
     def test_connection_timeout_marks_port_filtered(self, mock_socket_class):
         """
         Verify how the scanner reports a connection timeout.
@@ -57,7 +57,7 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["port"], 80)
         self.assertEqual(result["state"], "filtered") 
 
-    @patch("scanner.socket.socket")
+    @patch("portscanner.scanner.socket.socket")
     def test_connection_refused_marks_port_closed(self, mock_socket_class):
         """
         Verify how the scanner reports an explicit connection refusal.
@@ -78,7 +78,7 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["port"], 80)
         self.assertEqual(result["state"], "closed")
 
-    @patch("scanner.socket.socket")
+    @patch("portscanner.scanner.socket.socket")
     def test_refused_connection_code_marks_port_closed(self, mock_socket_class):
         """
         Verify that a refusal code is reported as a closed port.
@@ -99,7 +99,7 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["port"], 80)
         self.assertEqual(result["state"], "closed")
 
-    @patch("scanner.socket.socket")
+    @patch("portscanner.scanner.socket.socket")
     def test_timeout_code_marks_port_filtered(self, mock_socket_class):
         """
         Verify how the scanner classifies a returned timeout code.
@@ -121,7 +121,7 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["port"], 80)
         self.assertEqual(result["state"], "filtered")
 
-    @patch("scanner.socket.socket")
+    @patch("portscanner.scanner.socket.socket")
     def test_summary_counts_failed_connection_attempt(self, socket_class):
         """
         Verify that the scan summary includes failed connection attempts.
@@ -145,7 +145,7 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(summary["total_scanned"], 1)
         self.assertEqual(summary["error_count"], 1)
 
-    @patch("scanner.socket.socket")
+    @patch("portscanner.scanner.socket.socket")
     def test_new_scan_resets_failed_attempt_count(self, socket_class):
         """
         Verify that failed attempts from a previous scan are not retained.
