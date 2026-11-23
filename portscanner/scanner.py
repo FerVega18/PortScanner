@@ -24,27 +24,33 @@ logger = logging.getLogger(__name__)
 
 class PortScanner:
     """
-    Handles TCP port scanning logic.
+    Scan TCP ports and collect per-scan results.
 
-    This class encapsulates all network-related operations. It doesn't know
-    about configuration files or report generation - its only job is to 
-    attempt connections and report what it finds. 
+    The scanner owns network operations and statistics, but does not load
+    configuration or generate reports.
 
-    Atributes:
-        timeout(float): Maximum second to wair for connection. 
+    Attributes:
+        timeout (float): Maximum time to wait for a connection, in seconds.
+        open_ports (List[Dict[str, Any]]): Results for open ports.
+        closed_ports (List[Dict[str, Any]]): Results for closed ports.
+        filtered_ports (List[Dict[str, Any]]): Results for filtered ports.
+        error_ports (List[Dict[str, Any]]): Results for attempts ending in error.
     """
-    def __init__(self, timeout: float = 1.0):
+    def __init__(self, timeout: float = 1.0) -> None:
         """
-        Initializes the PortScanner with a specified timeout.
+        Initialize the scanner with a connection timeout.
 
         Args:
-            timeout (float): Connection timeout in seconds. Increase for slow networks.
+            timeout (float): Maximum connection wait in seconds.
+
+        Returns:
+            None
         """
-        self.timeout = timeout
-        self.open_ports=[] 
-        self.closed_ports=[]
-        self.filtered_ports=[]
-        self.error_ports = []
+        self.timeout: float = timeout
+        self.open_ports: List[Dict[str, Any]] = []
+        self.closed_ports: List[Dict[str, Any]] = []
+        self.filtered_ports: List[Dict[str, Any]] = []
+        self.error_ports: List[Dict[str, Any]] = []
 
     def scan_port(self, ip: str, port: int) -> Dict[str, Any]:
         """
@@ -62,17 +68,15 @@ class PortScanner:
             - 'error': Unexpected issue (e.g., DNS failure, invalid IP)
 
         Args:
-            ip (str): Target IP address (e.g., '192.168.1.1')
-            port (int): Port number to scan (range: 1–65535)
+            ip (str): Target IPv4 address, such as ``"192.168.1.1"``.
+            port (int): TCP port number to scan, from 1 through 65535.
 
         Returns:
-            Dict[str, Any]: Dictionary containing scan result with structure:
-                {
-                    'port': int,           # Port number scanned
-                    'state': str,          # Port state (open/closed/filtered/error)
-                    'service': str | None, # Detected service name (if available)
-                    'error': str | None    # Error message (if applicable)
-                }
+            Dict[str, Any]: Result containing the port, state, optional service
+            name, and optional error message.
+
+        Raises:
+            OSError: If closing the socket fails after the scan attempt.
         """
         result = {
             'port': port,
@@ -164,11 +168,15 @@ class PortScanner:
         to significantly improve performance compared to sequential scanning.
 
         Args:
-            ip (str): Target IP address
-            ports (List[int]): List of ports to scan
+            ip (str): Target IPv4 address.
+            ports (List[int]): TCP port numbers to scan.
 
         Returns:
-            List[Dict[str, Any]]: List of scan results
+            List[Dict[str, Any]]: Results returned by the completed attempts.
+
+        Raises:
+            ValueError: If ``ports`` is empty because the thread pool would
+                have no workers.
         """
 
         # Clear previous scan results
@@ -210,18 +218,23 @@ class PortScanner:
 
         return results
 
-    def get_open_ports(self) -> list:
-        """ Returns a list of open ports found during the scan."""
+    def get_open_ports(self) -> List[int]:
+        """
+        Return the port numbers found open during the latest scan.
+
+        Returns:
+            List[int]: Open TCP port numbers.
+        """
         return [p['port'] for p in self.open_ports]
     
     def get_summary(self) -> Dict[str, Any]:
-        """ 
-        Generates summary statistics of the last scan.
+        """
+        Generate summary statistics for the latest scan.
 
         The total includes open, closed, filtered, and failed attempts.
 
         Returns:
-            Dictionary with scan statistics
+            Dict[str, Any]: Total and per-state counts, plus the open port list.
         """
         return {
             'total_scanned': len(self.open_ports) + len(self.closed_ports) + 

@@ -1,3 +1,10 @@
 ﻿__pycache__/
 *.pyc
-scan_report_*.json
+/reports/
+!/reports/
+/reports/*
+# Keep moved historical samples visible; ignore newly generated reports.
+!/reports/scan_report_127_0_0_1_20260401_131854.json
+!/reports/scan_report_127_0_0_1_20260401_132850.json
+web/node_modules/
+web/dist/

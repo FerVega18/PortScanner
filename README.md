@@ -65,21 +65,27 @@ This project follows clean architecture principles with clear separation of conc
 
 ```bash
 PortScanner/
-├── main.py           # Entry point and orchestrator
-├── scanner.py        # Network scanning engine (socket logic)
-├── reporter.py       # Report generation and alerts (JSON output)
-├── config.json       # External configuration (dangerous ports)
-└── README.md         # Documentation
+├── main.py                  # CLI entry point
+├── portscanner/
+│   ├── cli.py               # Arguments and command flow
+│   ├── scanner.py           # TCP scanning and statistics
+│   ├── reporter.py          # Alerts and JSON export
+│   └── config.json          # Scan settings and alert rules
+├── reports/                 # Locally generated JSON reports
+├── tests/
+├── web/                     # React report viewer
+└── README.md
 ````
 
 ### Module Responsibilities
 
-| Module        | Responsibility                              | Knows About                      |
-| ------------- | ------------------------------------------- | -------------------------------- |
-| `main.py`     | Orchestrates the flow, parses CLI arguments | Nothing about networking or JSON |
-| `scanner.py`  | TCP connections, port state detection       | Sockets, but NOT JSON or reports |
-| `reporter.py` | JSON output, security alerts                | JSON, but NOT networking         |
-| `config.json` | Stores configuration data                   | Pure data, no code               |
+| Module | Responsibility | Knows About |
+| --- | --- | --- |
+| `main.py` | Starts the CLI in `portscanner.cli` | Package entry point |
+| `portscanner/cli.py` | Parses arguments and coordinates a scan | Scanner and reporter |
+| `portscanner/scanner.py` | TCP connections and port-state detection | Sockets, not reports |
+| `portscanner/reporter.py` | JSON output and security alerts | Reports, not networking |
+| `portscanner/config.json` | Stores scanner settings and alert rules | Pure data |
 
 **This separation ensures:**
 
@@ -162,6 +168,12 @@ python main.py 192.168.1.1 -t 2.5
 
 # Debug mode
 python main.py 127.0.0.1 --debug
+```
+
+Reports are saved to `reports/` by default. Use `-o` to choose another path:
+
+```bash
+python main.py 127.0.0.1 -o my-report.json
 
 # Custom output
 python main.py 192.168.1.1 -o security_audit.json
@@ -211,7 +223,7 @@ Recommendation: Use VPN or enable NLA
 
 ## Configuration
 
-All configuration is stored in `config.json`.
+All configuration is stored in `portscanner/config.json`.
 
 ### Default Configuration
 
@@ -266,6 +278,22 @@ All configuration is stored in `config.json`.
 ```
 scan_report_<IP>_<YYYYMMDD_HHMMSS>.json
 ```
+
+By default, generated reports are placed in the root-level `reports/` folder.
+That folder is excluded from Git so local scan output is not committed.
+
+### React Report Viewer
+
+The web viewer lets you select a JSON report and displays its scan summary or
+an error if the file is invalid. The report is read locally in the browser.
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Open the local URL printed by Vite, then select a report from `../reports/`.
 
 ---
 

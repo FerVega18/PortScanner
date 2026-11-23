@@ -13,21 +13,22 @@ import json
 import argparse
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 # Import the scanner and reporter from this package.
 from .scanner import PortScanner
 from .reporter import SecurityReporter
 
 
-def configure_logging(debug_mode: bool = False):
+def configure_logging(debug_mode: bool = False) -> None:
     """
-    Configure logging for the entire application.
-    
-    This should be called ONCE at program startup.
-    
+    Configure application-wide logging.
+
     Args:
-        debug_mode: If True, show DEBUG level messages and detailed format
+        debug_mode (bool): Whether to show DEBUG messages and detailed logs.
+
+    Returns:
+        None
     """
     if debug_mode:
         logging.basicConfig(
@@ -42,19 +43,20 @@ def configure_logging(debug_mode: bool = False):
         )
 
 
-def load_config(config_file: Optional[str] = None) -> dict:
+def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
     """
     Load configuration from a JSON file.
-    
+
     Args:
-        config_file: Optional path to a configuration file. By default,
-            config.json next to this module is used.
-        
+        config_file (Optional[str]): Optional configuration path. Defaults to
+            config.json next to this module.
+
     Returns:
-        Dictionary with configuration data
-        
+        Dict[str, Any]: The parsed configuration.
+
     Raises:
-        SystemExit: If config file not found or invalid
+        SystemExit: If the configuration file is missing or contains invalid JSON.
+        PermissionError: If the current process cannot read the configuration file.
     """
     config_path = (
         Path(config_file)
@@ -80,13 +82,13 @@ def load_config(config_file: Optional[str] = None) -> dict:
 
 def validate_ip(ip: str) -> bool:
     """
-    Validate IPv4 address format.
-    
+    Validate an IPv4 address.
+
     Args:
-        ip: IP address string to validate
-        
+        ip (str): Address string to validate.
+
     Returns:
-        True if valid IPv4 address, False otherwise
+        bool: True if the string contains four integer octets from 0 to 255.
     """
     parts = ip.split('.')
     if len(parts) != 4:
@@ -102,17 +104,18 @@ def validate_ip(ip: str) -> bool:
         return False
 
 
-def parse_ports(ports_str: str) -> list:
+def parse_ports(ports_str: str) -> List[int]:
     """
-    Parse comma-separated port list from command line.
-    
-    Args:
-        ports_str: String like "22,80,443"
-        
-    Returns:
-        List of integers
+    Parse and validate a comma-separated list of TCP ports.
 
-    Each port must be between 1 and 65535, inclusive.
+    Args:
+        ports_str (str): Port list such as ``"22,80,443"``.
+
+    Returns:
+        List[int]: Port numbers, each between 1 and 65535.
+
+    Raises:
+        SystemExit: If a value is not an integer or is outside the valid range.
     """
     try:
         ports = [int(p.strip()) for p in ports_str.split(',')]
@@ -128,8 +131,13 @@ def parse_ports(ports_str: str) -> list:
     return ports
 
 
-def print_banner():
-    """Display application banner"""
+def print_banner() -> None:
+    """
+    Display the PortScanner command-line banner.
+
+    Returns:
+        None
+    """
     banner = """
     ╔══════════════════════════════════════════════════════════════╗
     ║            PYTHON PORT SCANNER - Security Automation Tool    ║
@@ -140,12 +148,18 @@ def print_banner():
     print(banner)
 
 
-def main():
+def main() -> None:
     """
     Run the port scanner command-line application.
 
     A completed scan still returns an error if its JSON report cannot be
     saved, so users know the requested output was not produced.
+
+    Returns:
+        None
+
+    Raises:
+        SystemExit: If arguments, the target IP, the scan, or report saving fails.
     """
     
     # Parse command line arguments

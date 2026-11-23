@@ -3,15 +3,19 @@
 from contextlib import redirect_stdout
 from io import StringIO
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from portscanner import cli as main
 
 
 class MainTests(TestCase):
+    """Verify command-line outcomes and argument validation."""
+
     @patch("portscanner.cli.SecurityReporter")
     @patch("portscanner.cli.PortScanner")
-    def test_failed_report_save_exits_with_error(self, scanner_class, reporter_class):
+    def test_failed_report_save_exits_with_error(
+        self, scanner_class: MagicMock, reporter_class: MagicMock
+    ) -> None:
         """
         Verify that a completed scan reports a failed JSON export to the caller.
 
@@ -21,6 +25,13 @@ class MainTests(TestCase):
         Expected result:
             The console explains that the report was not saved and main exits
             with status 1.
+
+        Args:
+            scanner_class (MagicMock): Patched scanner constructor.
+            reporter_class (MagicMock): Patched report generator.
+
+        Returns:
+            None
         """
         reporter_class.return_value.save_json_report.return_value = None
         scanner_class.return_value.scan_ports.return_value = []
@@ -47,8 +58,8 @@ class MainTests(TestCase):
     @patch("portscanner.cli.SecurityReporter")
     @patch("portscanner.cli.PortScanner")
     def test_successful_report_save_completes_successfully(
-        self, scanner_class, reporter_class
-    ):
+        self, scanner_class: MagicMock, reporter_class: MagicMock
+    ) -> None:
         """
         Verify that a successful JSON export preserves the normal CLI outcome.
 
@@ -58,6 +69,13 @@ class MainTests(TestCase):
         Expected result:
             main returns normally and prints the successful scan completion
             message.
+
+        Args:
+            scanner_class (MagicMock): Patched scanner constructor.
+            reporter_class (MagicMock): Patched report generator.
+
+        Returns:
+            None
         """
         reporter_class.return_value.save_json_report.return_value = "report.json"
         scanner_class.return_value.scan_ports.return_value = []
@@ -82,8 +100,8 @@ class MainTests(TestCase):
     @patch("portscanner.cli.PortScanner")
     @patch("portscanner.cli.load_config", return_value={})
     def test_out_of_range_ports_are_rejected_before_scan(
-        self, load_config, scanner_class
-    ):
+        self, _load_config: MagicMock, scanner_class: MagicMock
+    ) -> None:
         """
         Verify that the CLI rejects ports outside the supported range.
 
@@ -93,6 +111,13 @@ class MainTests(TestCase):
         Expected result:
             The command exits with status 1, explains the valid range,
             and stops before creating a scanner.
+
+        Args:
+            _load_config (MagicMock): Patched configuration loader.
+            scanner_class (MagicMock): Patched scanner constructor.
+
+        Returns:
+            None
         """
         for port in ("0", "65536"):
             with self.subTest(port=port):
@@ -106,8 +131,9 @@ class MainTests(TestCase):
                 self.assertIn("1–65535", output.getvalue())
 
         scanner_class.assert_not_called()
+        self.assertEqual(_load_config.call_count, 2)
 
-    def test_port_range_accepts_both_boundaries(self):
+    def test_port_range_accepts_both_boundaries(self) -> None:
         """
         Verify that parsing accepts the first and last supported ports.
 
@@ -116,5 +142,8 @@ class MainTests(TestCase):
 
         Expected result:
             The parser returns both boundary ports as integers.
+
+        Returns:
+            None
         """
         self.assertEqual(main.parse_ports("1,65535"), [1, 65535])

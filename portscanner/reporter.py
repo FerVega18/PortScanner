@@ -6,7 +6,8 @@ Handles JSON output, security alerts, and result formatting
 import json
 import logging
 from datetime import datetime
-from typing import List, Dict, Any
+from pathlib import Path
+from typing import List, Dict, Any, Optional
 
 # Create logger for this module
 logger = logging.getLogger(__name__)
@@ -14,28 +15,32 @@ logger = logging.getLogger(__name__)
 
 class SecurityReporter:
     """
-    Generates formatted reports and security alerts from scan results.
-    
-    This class handles all output-related operations: creating JSON reports,
-    displaying console alerts for dangerous ports, and saving results to disk.
+    Create scan reports, analyze alerts, and export JSON results.
 
     Attributes:
-        dangerous_ports (dict): Configuration of high-risk ports from config.json
-        scan_settings (dict): Scan configuration settings
+        dangerous_ports (Dict[str, Any]): Risk rules from ``config.json``.
+        scan_settings (Dict[str, Any]): Scan settings from ``config.json``.
     """
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any]) -> None:
         """
-        Initialize reporter with configuration data.
+        Initialize the reporter with application configuration.
 
         Args:
-            config: Loaded configuration dictionary from config.json
-        """
-        self.dangerous_ports = config.get('dangerous_ports', {})
-        self.scan_settings = config.get('scan_settings', {})
+            config (Dict[str, Any]): Parsed configuration mapping.
 
-    def generate_report(self, ip: str, scan_results: List[Dict], 
-                        summary: Dict[str, Any]) -> Dict[str, Any]:
+        Returns:
+            None
+        """
+        self.dangerous_ports: Dict[str, Any] = config.get('dangerous_ports', {})
+        self.scan_settings: Dict[str, Any] = config.get('scan_settings', {})
+
+    def generate_report(
+        self,
+        ip: str,
+        scan_results: List[Dict[str, Any]],
+        summary: Dict[str, Any],
+    ) -> Dict[str, Any]:
         """
         Create a structured report from scan results.
 
@@ -43,12 +48,16 @@ class SecurityReporter:
         structured dictionary ready for JSON export.
 
         Args:
-            ip: Target IP address that was scanned
-            scan_results: List of dictionaries with port scan results
-            summary: Summary statistics from the scanner
+            ip (str): Target IPv4 address that was scanned.
+            scan_results (List[Dict[str, Any]]): Port results from the scanner.
+            summary (Dict[str, Any]): Statistics returned by the scanner.
 
         Returns:
-            Complete report dictionary with all scan information
+            Dict[str, Any]: Metadata, statistics, open-port details, and
+            security analysis for the scan.
+
+        Raises:
+            KeyError: If an open-port result does not contain its port number.
         """
         # Filter to only open ports for security analysis
         open_ports = [r for r in scan_results if r.get('state') == 'open']
@@ -74,24 +83,33 @@ class SecurityReporter:
         return report
 
     def save_json_report(self, report: Dict[str, Any],
-                         filename: str = None) -> str:
+                         filename: Optional[str] = None) -> Optional[str]:
         """
         Save the generated report as a JSON file.
 
         Args:
-            report: The report dictionary to save
-            filename: Optional custom filename. If not provided, auto-generates
+            report (Dict[str, Any]): Complete report mapping to serialize.
+            filename (Optional[str]): Custom path. If omitted, the report is
+                saved in the project-level ``reports`` directory.
 
         Returns:
-            The path to the saved JSON file
+            Optional[str]: Saved path, or ``None`` if writing fails.
+
+        Raises:
+            KeyError: If the default filename is requested and the report lacks
+                ``scan_metadata.target_ip``.
         """
+        report_directory: Optional[Path] = None
         if filename is None:
-            # Generate filename: scan_report_IP_YYYYMMDD_HHMMSS.json
+            report_directory = Path(__file__).resolve().parent.parent / "reports"
             ip = report['scan_metadata']['target_ip'].replace('.', '_')
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"scan_report_{ip}_{timestamp}.json"
+            filename = str(report_directory / f"scan_report_{ip}_{timestamp}.json")
 
         try:
+            if report_directory is not None:
+                report_directory.mkdir(parents=True, exist_ok=True)
+
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(report, f, indent=4, ensure_ascii=False)
 
@@ -108,14 +126,18 @@ class SecurityReporter:
             print(f"\n Error: {e}")
             return None
 
-    def display_alerts(self, report: Dict[str, Any]):
+    def display_alerts(self, report: Dict[str, Any]) -> None:
         """
-        Show security alerts in the console.
-
-        Displays formatted alerts for any dangerous ports found during scanning.
+        Display the report's security alerts in the console.
 
         Args:
-            report: Complete report dictionary
+            report (Dict[str, Any]): Complete scan report.
+
+        Returns:
+            None
+
+        Raises:
+            KeyError: If the report does not include ``security_analysis.alerts``.
         """
         alerts = report['security_analysis']['alerts']
 
@@ -144,15 +166,20 @@ class SecurityReporter:
             print(f"\n CRITICAL ALERT: {high_risk_count} HIGH-RISK port(s) detected! ")
             print("   Immediate action recommended to mitigate these risks")
 
-    def _analyze_security_risks(self, open_ports: List[Dict]) -> List[Dict]:
+    def _analyze_security_risks(
+        self, open_ports: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
-        Identify dangerous ports from the list of open ports.
+        Create alerts for open ports matching configured risk rules.
 
         Args:
-            open_ports: List of dictionaries with open port details
+            open_ports (List[Dict[str, Any]]): Open-port scan results.
 
         Returns:
-            List of security alerts with details
+            List[Dict[str, Any]]: Alert mappings for matching ports.
+
+        Raises:
+            KeyError: If an open-port result does not contain ``port``.
         """
         alerts = []
 
@@ -172,15 +199,15 @@ class SecurityReporter:
 
         return alerts
 
-    def _calculate_risk_level(self, alerts: List[Dict]) -> str:
+    def _calculate_risk_level(self, alerts: List[Dict[str, Any]]) -> str:
         """
-        Determine overall risk level based on found alerts.
+        Determine the aggregate risk level for a set of alerts.
 
         Args:
-            alerts: List of security alerts
+            alerts (List[Dict[str, Any]]): Security alerts to evaluate.
 
         Returns:
-            Risk level string: 'HIGH', 'MEDIUM', or 'LOW'
+            str: ``"HIGH"``, ``"MEDIUM"``, or ``"LOW"``.
         """
         if not alerts:
             return 'LOW'
@@ -192,13 +219,13 @@ class SecurityReporter:
 
     def _get_recommendation(self, port: str) -> str:
         """
-        Get specific security recommendations for a port.
+        Return a security recommendation for a known port.
 
         Args:
-            port: Port number as string
+            port (str): Port number represented as a string.
 
         Returns:
-            Recommendation text
+            str: Recommendation for the port or a general review instruction.
         """
         recommendations = {
             '21': 'Disable FTP and use SFTP or FTPS with encryption',

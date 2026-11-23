@@ -15,20 +15,20 @@ from io import StringIO
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from portscanner.reporter import SecurityReporter
 
 
 class SecurityReporterTests(unittest.TestCase):
     """
-    Verify how the reporter applies the configured RDP alert rule.
+    Verify alert generation, console output, and JSON report persistence.
 
-    Both tests use TCP port 3389. One supplies an open result to check
-    that the rule produces an alert. The other supplies a closed result
-    to check that the reporter filters it out before applying the rule.
+    The tests use simulated scan results and temporary paths so they do not
+    require network access or leave generated reports in the project.
     """
 
-    def test_open_rdp_port_generates_alert(self):
+    def test_open_rdp_port_generates_alert(self) -> None:
         """
         Verify that an open port 3389 produces an RDP alert.
 
@@ -43,6 +43,9 @@ class SecurityReporterTests(unittest.TestCase):
         Regression covered:
             If the RDP rule is removed from config.json, the reporter
             produces an empty alert list and this test fails.
+
+        Returns:
+            None
         """
         config_path = (
             Path(__file__).resolve().parent.parent / "portscanner" / "config.json"
@@ -60,7 +63,7 @@ class SecurityReporterTests(unittest.TestCase):
         self.assertEqual(alerts[0]["port"], 3389)
         self.assertEqual(alerts[0]["service"], "RDP")
 
-    def test_closed_rdp_port_does_not_generate_alert(self):
+    def test_closed_rdp_port_does_not_generate_alert(self) -> None:
         """
         Verify that a closed port 3389 leaves the alert list empty.
 
@@ -72,6 +75,9 @@ class SecurityReporterTests(unittest.TestCase):
         Expected result:
             The security analysis contains an empty alert list because
             the reporter applies alert rules only to open ports.
+
+        Returns:
+            None
         """
         config_path = (
             Path(__file__).resolve().parent.parent / "portscanner" / "config.json"
@@ -86,7 +92,7 @@ class SecurityReporterTests(unittest.TestCase):
 
         self.assertEqual(report["security_analysis"]["alerts"], [])
 
-    def test_no_alerts_message_describes_rule_matches(self):
+    def test_no_alerts_message_describes_rule_matches(self) -> None:
         """
         Verify the console message for a report with no alerts.
 
@@ -96,6 +102,9 @@ class SecurityReporterTests(unittest.TestCase):
         Expected result:
             The message explains that no open ports matched the
             configured alert rules.
+
+        Returns:
+            None
         """
         reporter = SecurityReporter({})
         report = {"security_analysis": {"alerts": []}}
@@ -109,7 +118,7 @@ class SecurityReporterTests(unittest.TestCase):
             output.getvalue(),
         )
 
-    def test_save_json_report_preserves_statistics_and_alerts(self):
+    def test_save_json_report_preserves_statistics_and_alerts(self) -> None:
         """
         Verify that an exported JSON report preserves its contents.
 
@@ -120,6 +129,9 @@ class SecurityReporterTests(unittest.TestCase):
         Expected result:
             The method returns the requested path, and reading the JSON
             file reconstructs the original report dictionary.
+
+        Returns:
+            None
         """
         reporter = SecurityReporter({})
         report = {
@@ -140,7 +152,37 @@ class SecurityReporterTests(unittest.TestCase):
 
         self.assertEqual(saved_report, report)
 
-    def test_save_json_report_returns_none_when_write_fails(self):
+    def test_save_json_report_uses_reports_directory_by_default(self) -> None:
+        """
+        Verify that the default export is placed in the project's reports folder.
+
+        Scenario:
+            The reporter receives no custom filename and its module is located
+            in a temporary project structure.
+
+        Expected result:
+            It creates reports/ and saves the generated JSON file there.
+
+        Returns:
+            None
+        """
+        reporter = SecurityReporter({})
+        report = {
+            "scan_metadata": {"target_ip": "127.0.0.1"},
+            "statistics": {},
+            "security_analysis": {"alerts": []},
+        }
+
+        with TemporaryDirectory() as directory:
+            module_path = Path(directory) / "portscanner" / "reporter.py"
+            with patch("portscanner.reporter.__file__", str(module_path)):
+                saved_path = reporter.save_json_report(report)
+
+            expected_directory = Path(directory) / "reports"
+            self.assertEqual(Path(saved_path).parent, expected_directory)
+            self.assertTrue(Path(saved_path).is_file())
+
+    def test_save_json_report_returns_none_when_write_fails(self) -> None:
         """
         Verify how the reporter signals a failed JSON export.
 
@@ -150,6 +192,9 @@ class SecurityReporterTests(unittest.TestCase):
 
         Expected result:
             The method returns None to signal that the report was not saved.
+
+        Returns:
+            None
         """
         reporter = SecurityReporter({})
 

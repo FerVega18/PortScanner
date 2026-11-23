@@ -3,7 +3,7 @@
 import errno
 import socket
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from portscanner.scanner import PortScanner
 
@@ -14,8 +14,8 @@ class PortScannerTests(unittest.TestCase):
     @patch("portscanner.scanner.socket.getservbyport", return_value="http")
     @patch("portscanner.scanner.socket.socket")
     def test_successful_connection_marks_port_open(
-        self, mock_socket_class, mock_service_lookup
-    ):
+        self, mock_socket_class: MagicMock, mock_service_lookup: MagicMock
+    ) -> None:
         """
         Verify that a successful TCP connection is reported as open.
 
@@ -25,6 +25,13 @@ class PortScannerTests(unittest.TestCase):
 
         Expected result:
             The result identifies port 80 and reports its state as "open".
+
+        Args:
+            mock_socket_class (MagicMock): Patched socket constructor.
+            mock_service_lookup (MagicMock): Patched service-name lookup.
+
+        Returns:
+            None
         """
         mock_socket = mock_socket_class.return_value
         mock_socket.connect_ex.return_value = 0
@@ -34,9 +41,13 @@ class PortScannerTests(unittest.TestCase):
 
         self.assertEqual(result["port"], 80)
         self.assertEqual(result["state"], "open")
+        self.assertEqual(result["service"], "http")
+        mock_service_lookup.assert_called_once_with(80)
 
     @patch("portscanner.scanner.socket.socket")
-    def test_connection_timeout_marks_port_filtered(self, mock_socket_class):
+    def test_connection_timeout_marks_port_filtered(
+        self, mock_socket_class: MagicMock
+    ) -> None:
         """
         Verify how the scanner reports a connection timeout.
 
@@ -47,6 +58,12 @@ class PortScannerTests(unittest.TestCase):
         Expected result:
             The scanner returns the requested port with state "filtered",
             following the current convention for a connection timeout.
+
+        Args:
+            mock_socket_class (MagicMock): Patched socket constructor.
+
+        Returns:
+            None
         """
         mock_socket = mock_socket_class.return_value
         mock_socket.connect_ex.side_effect = socket.timeout
@@ -58,7 +75,9 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["state"], "filtered") 
 
     @patch("portscanner.scanner.socket.socket")
-    def test_connection_refused_marks_port_closed(self, mock_socket_class):
+    def test_connection_refused_marks_port_closed(
+        self, mock_socket_class: MagicMock
+    ) -> None:
         """
         Verify how the scanner reports an explicit connection refusal.
 
@@ -68,6 +87,12 @@ class PortScannerTests(unittest.TestCase):
 
         Expected result:
             The result identifies port 80 and reports its state as "closed".
+
+        Args:
+            mock_socket_class (MagicMock): Patched socket constructor.
+
+        Returns:
+            None
         """
         mock_socket = mock_socket_class.return_value
         mock_socket.connect_ex.side_effect = ConnectionRefusedError
@@ -79,7 +104,9 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["state"], "closed")
 
     @patch("portscanner.scanner.socket.socket")
-    def test_refused_connection_code_marks_port_closed(self, mock_socket_class):
+    def test_refused_connection_code_marks_port_closed(
+        self, mock_socket_class: MagicMock
+    ) -> None:
         """
         Verify that a refusal code is reported as a closed port.
 
@@ -89,6 +116,12 @@ class PortScannerTests(unittest.TestCase):
 
         Expected result:
             The result identifies port 80 and reports its state as "closed".
+
+        Args:
+            mock_socket_class (MagicMock): Patched socket constructor.
+
+        Returns:
+            None
         """
         mock_socket = mock_socket_class.return_value
         mock_socket.connect_ex.return_value = errno.ECONNREFUSED
@@ -100,7 +133,9 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["state"], "closed")
 
     @patch("portscanner.scanner.socket.socket")
-    def test_timeout_code_marks_port_filtered(self, mock_socket_class):
+    def test_timeout_code_marks_port_filtered(
+        self, mock_socket_class: MagicMock
+    ) -> None:
         """
         Verify how the scanner classifies a returned timeout code.
 
@@ -111,6 +146,12 @@ class PortScannerTests(unittest.TestCase):
         Expected result:
             The result identifies port 80 and reports its state as
             "filtered", following the project's convention for timeouts.
+
+        Args:
+            mock_socket_class (MagicMock): Patched socket constructor.
+
+        Returns:
+            None
         """
         mock_socket = mock_socket_class.return_value
         mock_socket.connect_ex.return_value = errno.ETIMEDOUT
@@ -122,7 +163,9 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["state"], "filtered")
 
     @patch("portscanner.scanner.socket.socket")
-    def test_summary_counts_failed_connection_attempt(self, socket_class):
+    def test_summary_counts_failed_connection_attempt(
+        self, socket_class: MagicMock
+    ) -> None:
         """
         Verify that the scan summary includes failed connection attempts.
 
@@ -132,6 +175,12 @@ class PortScannerTests(unittest.TestCase):
 
         Expected result:
             The summary counts one attempted port and one error.
+
+        Args:
+            socket_class (MagicMock): Patched socket constructor.
+
+        Returns:
+            None
         """
         socket_class.return_value.connect_ex.side_effect = OSError(
             "Simulated socket failure"
@@ -146,7 +195,9 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(summary["error_count"], 1)
 
     @patch("portscanner.scanner.socket.socket")
-    def test_new_scan_resets_failed_attempt_count(self, socket_class):
+    def test_new_scan_resets_failed_attempt_count(
+        self, socket_class: MagicMock
+    ) -> None:
         """
         Verify that failed attempts from a previous scan are not retained.
 
@@ -156,6 +207,12 @@ class PortScannerTests(unittest.TestCase):
         Expected result:
             Each scan summary reports one attempted port and one error,
             rather than accumulating the previous scan's failed attempt.
+
+        Args:
+            socket_class (MagicMock): Patched socket constructor.
+
+        Returns:
+            None
         """
         socket_class.return_value.connect_ex.side_effect = OSError(
             "Simulated socket failure"
