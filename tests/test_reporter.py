@@ -9,7 +9,8 @@ scenarios reproducible without opening network connections.
 Run from the project directory:
     python -m unittest discover -s tests -v
 """
-
+from contextlib import redirect_stdout
+from io import StringIO
 import json
 from pathlib import Path
 import unittest
@@ -79,3 +80,26 @@ class SecurityReporterTests(unittest.TestCase):
         report = reporter.generate_report("127.0.0.1", results, summary)
 
         self.assertEqual(report["security_analysis"]["alerts"], [])
+
+    def test_no_alerts_message_describes_rule_matches(self):
+        """
+        Verify the console message for a report with no alerts.
+
+        Scenario:
+            The reporter displays a report whose alert list is empty.
+
+        Expected result:
+            The message explains that no open ports matched the
+            configured alert rules.
+        """
+        reporter = SecurityReporter({})
+        report = {"security_analysis": {"alerts": []}}
+        output = StringIO()
+
+        with redirect_stdout(output):
+            reporter.display_alerts(report)
+
+        self.assertIn(
+            "No open ports matched the configured alert rules.",
+            output.getvalue(),
+        )

@@ -120,8 +120,7 @@ class SecurityReporter:
         alerts = report['security_analysis']['alerts']
 
         if not alerts:
-            print("\n SECURITY ALERTS: No dangerous ports detected")
-            print(" System appears secure based on known vulnerable ports")
+            print("\nNo open ports matched the configured alert rules.")
             return
 
         risk_level = report['security_analysis']['risk_level']
