@@ -44,15 +44,15 @@ class PortScanner:
         self.open_ports=[] 
         self.closed_ports=[]
         self.filtered_ports=[]
+        self.error_ports = []
 
     def scan_port(self, ip: str, port: int) -> Dict[str, Any]:
         """
         Scan a single TCP port on a target IP address.
 
         This method attempts to establish a TCP connection to the specified
-        port using a socket. The result of the connection attempt is used to
-        determine the port state in a cross-platform way (without relying on
-        OS-specific error codes).
+        port. The scanner classifies the outcome using the return value
+        or the exception raised by the connection attempt.
 
         Port states:
             - 'open': Successful TCP connection (service is listening)
@@ -113,13 +113,12 @@ class PortScanner:
                 logger.debug(f"Port {port}: FILTERED (timeout code)")
 
             else:
-                # Non-zero result → connection failed (treated as CLOSED)
-                # Avoids dependency on OS-specific error codes
+                # Treat other nonzero connection codes as closed.
                 result['state'] = 'closed'
                 logger.info(f"Port {port}: CLOSED")
 
         except socket.timeout:
-            # No response within timeout → likely FILTERED by firewall
+            # Record the timeout without attributing it to a specific cause.
             result['state'] = 'filtered'
             logger.debug(f"Port {port}: FILTERED (timeout)")
 
@@ -152,6 +151,8 @@ class PortScanner:
             self.closed_ports.append(result)
         elif result['state'] == 'filtered':
             self.filtered_ports.append(result)
+        elif result['state'] == 'error':
+            self.error_ports.append(result)
 
         return result
 
@@ -174,6 +175,7 @@ class PortScanner:
         self.open_ports.clear()
         self.closed_ports.clear()
         self.filtered_ports.clear()
+        self.error_ports.clear()
 
         results = []
         total = len(ports)
@@ -215,15 +217,19 @@ class PortScanner:
     def get_summary(self) -> Dict[str, Any]:
         """ 
         Generates summary statistics of the last scan.
+
+        The total includes open, closed, filtered, and failed attempts.
+
         Returns:
             Dictionary with scan statistics
         """
         return {
             'total_scanned': len(self.open_ports) + len(self.closed_ports) + 
-            len(self.filtered_ports),
+            len(self.filtered_ports) + len(self.error_ports),
             'open_count': len(self.open_ports),
             'closed_count': len(self.closed_ports),
             'filtered_count': len(self.filtered_ports),
+            'error_count': len(self.error_ports),
             'open_ports_list': self.get_open_ports()
         }
                 

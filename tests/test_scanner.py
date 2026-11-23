@@ -121,3 +121,53 @@ class PortScannerTests(unittest.TestCase):
         self.assertEqual(result["port"], 80)
         self.assertEqual(result["state"], "filtered")
 
+    @patch("scanner.socket.socket")
+    def test_summary_counts_failed_connection_attempt(self, socket_class):
+        """
+        Verify that the scan summary includes failed connection attempts.
+
+        Scenario:
+            The simulated socket raises an unexpected error during a
+            connection attempt, and the scanner records the state as "error".
+
+        Expected result:
+            The summary counts one attempted port and one error.
+        """
+        socket_class.return_value.connect_ex.side_effect = OSError(
+            "Simulated socket failure"
+        )
+        scanner = PortScanner()
+
+        result = scanner.scan_port("127.0.0.1", 80)
+        summary = scanner.get_summary()
+
+        self.assertEqual(result["state"], "error")
+        self.assertEqual(summary["total_scanned"], 1)
+        self.assertEqual(summary["error_count"], 1)
+
+    @patch("scanner.socket.socket")
+    def test_new_scan_resets_failed_attempt_count(self, socket_class):
+        """
+        Verify that failed attempts from a previous scan are not retained.
+
+        Scenario:
+            Two scans each encounter one simulated connection error.
+
+        Expected result:
+            Each scan summary reports one attempted port and one error,
+            rather than accumulating the previous scan's failed attempt.
+        """
+        socket_class.return_value.connect_ex.side_effect = OSError(
+            "Simulated socket failure"
+        )
+        scanner = PortScanner()
+
+        scanner.scan_ports("127.0.0.1", [80])
+        first_summary = scanner.get_summary()
+        scanner.scan_ports("127.0.0.1", [80])
+        second_summary = scanner.get_summary()
+
+        self.assertEqual(first_summary["total_scanned"], 1)
+        self.assertEqual(first_summary["error_count"], 1)
+        self.assertEqual(second_summary["total_scanned"], 1)
+        self.assertEqual(second_summary["error_count"], 1)
