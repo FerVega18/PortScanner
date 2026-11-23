@@ -7,7 +7,7 @@ results that the scanner would pass to the reporter, making both
 scenarios reproducible without opening network connections.
 
 Run from the project directory:
-    python -m unittest -v test_reporter
+    python -m unittest discover -s tests -v
 """
 
 import json
@@ -42,7 +42,7 @@ class SecurityReporterTests(unittest.TestCase):
             If the RDP rule is removed from config.json, the reporter
             produces an empty alert list and this test fails.
         """
-        config_path = Path(__file__).with_name("config.json")
+        config_path = Path(__file__).resolve().parent.parent / "config.json"
         config = json.loads(config_path.read_text(encoding="utf-8"))
         reporter = SecurityReporter(config)
 
@@ -69,7 +69,7 @@ class SecurityReporterTests(unittest.TestCase):
             The security analysis contains an empty alert list because
             the reporter applies alert rules only to open ports.
         """
-        config_path = Path(__file__).with_name("config.json")
+        config_path = Path(__file__).resolve().parent.parent / "config.json"
         config = json.loads(config_path.read_text(encoding="utf-8"))
         reporter = SecurityReporter(config)
 
