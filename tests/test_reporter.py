@@ -9,6 +9,7 @@ scenarios reproducible without opening network connections.
 Run from the project directory:
     python -m unittest discover -s tests -v
 """
+from tempfile import TemporaryDirectory
 from contextlib import redirect_stdout
 from io import StringIO
 import json
@@ -103,3 +104,53 @@ class SecurityReporterTests(unittest.TestCase):
             "No open ports matched the configured alert rules.",
             output.getvalue(),
         )
+
+    def test_save_json_report_preserves_statistics_and_alerts(self):
+        """
+        Verify that an exported JSON report preserves its contents.
+
+        Scenario:
+            The reporter saves a sample report with statistics and an
+            RDP alert to a file in a temporary directory.
+
+        Expected result:
+            The method returns the requested path, and reading the JSON
+            file reconstructs the original report dictionary.
+        """
+        reporter = SecurityReporter({})
+        report = {
+            "statistics": {"total_scanned": 1, "open_count": 1},
+            "security_analysis": {
+                "alerts": [{"port": 3389, "service": "RDP", "risk": "HIGH"}],
+                "total_risks": 1,
+                "risk_level": "HIGH",
+            },
+        }
+
+        with TemporaryDirectory() as directory:
+            output_path = Path(directory) / "report.json"
+            saved_path = reporter.save_json_report(report, str(output_path))
+
+            self.assertEqual(saved_path, str(output_path))
+            saved_report = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(saved_report, report)
+
+    def test_save_json_report_returns_none_when_write_fails(self):
+        """
+        Verify how the reporter signals a failed JSON export.
+
+        Scenario:
+            The destination file is inside a parent directory that
+            does not exist, so opening the file for writing fails.
+
+        Expected result:
+            The method returns None to signal that the report was not saved.
+        """
+        reporter = SecurityReporter({})
+
+        with TemporaryDirectory() as directory:
+            output_path = Path(directory) / "missing" / "report.json"
+            saved_path = reporter.save_json_report({}, str(output_path))
+
+        self.assertIsNone(saved_path)
