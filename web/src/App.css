@@ -1,0 +1,456 @@
+/*
+Report viewer
+===
+Dark, responsive page for selecting and reviewing PortScanner JSON reports.
+
+Variables:
+--primary-color: Main upload action and link accent.
+--background-color: Page background.
+--surface-color: Main panels.
+--text-color: Primary text.
+--muted-color: Secondary text.
+--border-color: Panel and card outlines.
+
+Responsive breakpoints:
+700px: Stack the upload panel and show statistics in two columns.
+420px: Stack the report target and risk badge.
+
+BEM block:
+.report-viewer is the page root. Its elements cover the header, file picker,
+report summary, statistics, and alerts. Error and risk states use modifiers.
+Global selectors below set the document baseline; component styling uses
+report-viewer__element and report-viewer__element--modifier names.
+
+Class map:
+.report-viewer: Main page element.
+.report-viewer__header, __eyebrow, __title, __intro: Introductory header content.
+.report-viewer__section-title: Upload and alerts section headings.
+.report-viewer__upload, __upload-copy: File selection panel and its copy.
+.report-viewer__file-picker, __file-picker-label, __file-input: File control.
+.report-viewer__filename: Selected file name.
+.report-viewer__message, __message--error: Status and validation feedback.
+.report-viewer__report, __report-heading, __target, __timestamp: Report header.
+.report-viewer__risk-badge, __risk-badge--high/medium/low/sin-datos: Aggregate risk.
+.report-viewer__stats, __stat, __stat-label, __stat-value: Scan counters.
+.report-viewer__alerts, __alerts-heading, __alert-count: Alert section heading.
+.report-viewer__alert-list, __alert, __alert-heading: Alert list structure.
+.report-viewer__alert-title, __alert-risk, __alert-description: Alert details.
+.report-viewer__alert-recommendation: Recommended follow-up for an alert.
+.report-viewer__muted: Secondary text used throughout the report viewer.
+
+Markup:
+<main class="report-viewer">
+  <header class="report-viewer__header">...</header>
+  <section class="report-viewer__upload">...</section>
+  <section class="report-viewer__report">...</section>
+</main>
+
+Styleguide 1.0
+*/
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --primary-color: #1d4ed8;
+  --primary-hover-color: #2563eb;
+  --primary-accent-color: #77a8ff;
+  --background-color: #0b1220;
+  --surface-color: rgb(17 27 43 / 88%);
+  --raised-surface-color: #0d1727;
+  --text-color: #e8edf5;
+  --muted-color: #a7b3c5;
+  --border-color: #263449;
+  --error-color: #ffc1c7;
+  color: var(--text-color);
+  background: var(--background-color);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 80% 0%, rgb(29 78 216 / 14%), transparent 34rem),
+    var(--background-color);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+/*
+Page header
+---
+Styles the report viewer's introductory header, eyebrow, title, and description.
+
+Markup:
+<header class="report-viewer__header">
+  <p class="report-viewer__eyebrow">...</p>
+  <h1 class="report-viewer__title">...</h1>
+  <p class="report-viewer__intro">...</p>
+</header>
+
+Styleguide 1.1
+*/
+.report-viewer {
+  width: min(100% - 2rem, 940px);
+  margin: 0 auto;
+  padding: 5rem 0;
+}
+
+.report-viewer__header {
+  max-width: 660px;
+  margin-bottom: 2.5rem;
+}
+
+.report-viewer__eyebrow {
+  margin: 0 0 0.75rem;
+  color: var(--primary-accent-color);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.report-viewer__title,
+.report-viewer__section-title,
+.report-viewer__target,
+.report-viewer__intro,
+.report-viewer__muted,
+.report-viewer__filename,
+.report-viewer__alert-description,
+.report-viewer__alert-recommendation {
+  margin-top: 0;
+}
+
+.report-viewer__title {
+  margin-bottom: 0.8rem;
+  font-size: clamp(2.2rem, 6vw, 3.5rem);
+  letter-spacing: -0.055em;
+  line-height: 1.05;
+}
+
+.report-viewer__section-title,
+.report-viewer__target {
+  margin-bottom: 0.55rem;
+  font-size: 1.25rem;
+}
+
+.report-viewer__intro,
+.report-viewer__muted {
+  color: var(--muted-color);
+  line-height: 1.6;
+}
+
+.report-viewer__intro {
+  max-width: 570px;
+  margin-bottom: 0;
+  font-size: 1.05rem;
+}
+
+/*
+File upload panel
+---
+Styles the panel containing the file-picker label and selected filename.
+.report-viewer__file-input is visually hidden but remains keyboard accessible
+through its associated label and focus-within outline.
+
+Markup:
+<section class="report-viewer__upload">
+  <div class="report-viewer__upload-copy">...</div>
+  <label class="report-viewer__file-picker">
+    <input class="report-viewer__file-input" type="file" />
+  </label>
+  <p class="report-viewer__filename">...</p>
+</section>
+
+Styleguide 1.2
+*/
+.report-viewer__upload,
+.report-viewer__report,
+.report-viewer__message {
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  background: var(--surface-color);
+  box-shadow: 0 22px 60px rgb(0 0 0 / 18%);
+}
+
+.report-viewer__upload {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.report-viewer__upload-copy .report-viewer__muted {
+  margin-bottom: 0;
+}
+
+.report-viewer__file-picker {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--primary-accent-color);
+  border-radius: 10px;
+  background: var(--primary-color);
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.report-viewer__file-picker:hover {
+  transform: translateY(-1px);
+  background: var(--primary-hover-color);
+}
+
+.report-viewer__file-picker:focus-within {
+  outline: 3px solid rgb(119 168 255 / 45%);
+  outline-offset: 3px;
+}
+
+.report-viewer__file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.report-viewer__filename {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  color: var(--muted-color);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.report-viewer__message {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.report-viewer__message--error {
+  border-color: #7f3039;
+  background: #321b25;
+  color: var(--error-color);
+}
+
+/*
+Report summary
+---
+Styles the selected report's target, timestamp, risk badge, and statistics.
+Risk modifiers correspond to the lower-case risk values from the report data.
+
+Markup:
+<section class="report-viewer__report">
+  <div class="report-viewer__report-heading">...</div>
+  <div class="report-viewer__stats">
+    <article class="report-viewer__stat">...</article>
+  </div>
+</section>
+
+Styleguide 1.3
+*/
+.report-viewer__report {
+  margin-top: 1.25rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.report-viewer__report-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.report-viewer__timestamp {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.report-viewer__risk-badge {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #3c526f;
+  border-radius: 999px;
+  color: #d7e5ff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.report-viewer__risk-badge--high {
+  border-color: #8d3942;
+  background: #3c202a;
+  color: #ffb9c1;
+}
+
+.report-viewer__risk-badge--medium {
+  border-color: #8a6531;
+  background: #352a1e;
+  color: #f5d28a;
+}
+
+.report-viewer__risk-badge--low {
+  border-color: #34745a;
+  background: #17352b;
+  color: #a6e8c5;
+}
+
+.report-viewer__stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.report-viewer__stat {
+  min-height: 105px;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--raised-surface-color);
+}
+
+.report-viewer__stat-label {
+  margin: 0 0 0.7rem;
+  color: var(--muted-color);
+  font-size: 0.78rem;
+}
+
+.report-viewer__stat-value {
+  font-size: 1.8rem;
+  letter-spacing: -0.04em;
+}
+
+/*
+Security alert list
+---
+Styles the alert heading, count, and individual alert descriptions and
+recommendations rendered inside the report summary.
+
+Markup:
+<section class="report-viewer__alerts">
+  <div class="report-viewer__alerts-heading">...</div>
+  <ul class="report-viewer__alert-list">
+    <li class="report-viewer__alert">...</li>
+  </ul>
+</section>
+
+Styleguide 1.4
+*/
+.report-viewer__alerts {
+  margin-top: 1.75rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.report-viewer__alerts-heading,
+.report-viewer__alert-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.report-viewer__alerts-heading {
+  margin-bottom: 1rem;
+}
+
+.report-viewer__alert-count {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #1c2a3e;
+  color: #c3d6f5;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.report-viewer__alerts > .report-viewer__muted {
+  margin-bottom: 0;
+}
+
+.report-viewer__alert-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-viewer__alert {
+  padding: 1rem;
+  border: 1px solid #35445a;
+  border-radius: 10px;
+  background: #101c2d;
+}
+
+.report-viewer__alert-heading {
+  margin-bottom: 0.65rem;
+}
+
+.report-viewer__alert-risk {
+  color: #f5d28a;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.report-viewer__alert-description,
+.report-viewer__alert-recommendation {
+  margin-bottom: 0.4rem;
+  line-height: 1.5;
+}
+
+.report-viewer__alert-recommendation {
+  color: var(--muted-color);
+}
+
+.report-viewer__alert-description:last-child,
+.report-viewer__alert-recommendation:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 700px) {
+  .report-viewer {
+    padding: 3rem 0;
+  }
+
+  .report-viewer__upload {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .report-viewer__file-picker {
+    justify-self: start;
+  }
+
+  .report-viewer__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .report-viewer__report-heading {
+    flex-direction: column;
+  }
+
+  .report-viewer__stat {
+    min-height: 90px;
+    padding: 0.8rem;
+  }
+}
