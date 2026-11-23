@@ -1,5 +1,3 @@
-print("Hola Mundo de la Ciberseguridad ")
-
 """
 main.py - Port Scanner CLI Entry Point
 Orchestrates the scanning process by coordinating scanner and reporter modules
@@ -127,7 +125,12 @@ def print_banner():
 
 
 def main():
-    """Main entry point for the port scanner application"""
+    """
+    Run the port scanner command-line application.
+
+    A completed scan still returns an error if its JSON report cannot be
+    saved, so users know the requested output was not produced.
+    """
     
     # Parse command line arguments
     parser = argparse.ArgumentParser(
@@ -228,6 +231,11 @@ def main():
     
     # Save JSON report
     saved_file = reporter.save_json_report(report, args.output)
+    # A completed scan is only a successful CLI run if its report is saved.
+    if saved_file is None:
+        print("\nError: Scan completed, but the JSON report could not be saved.")
+        logger.error("Scan completed, but the JSON report could not be saved")
+        sys.exit(1)
     
     # Final summary
     print("\n" + "=" * 50)
